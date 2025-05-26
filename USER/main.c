@@ -9,33 +9,23 @@
 #include "string.h"
 #include "stmflash.h"
 #include "iap.h" 
+#include "key.h"
+#include "usbd_msc_core.h"
+#include "usbd_usr.h"
+#include "usbd_desc.h"
+#include "usb_conf.h"
+#include "usbd_msc_bot.h"
 
 #define APP_FLASH_ADDR 0x08010000 //64KB
 
 FATFS fs;
 
-int main(void)
-{
-	u8 t=0;	
-	u8 res=0;
-	
-  HAL_Init();                   	//初始化HAL库    
+USB_OTG_CORE_HANDLE USB_OTG_dev;
 
-  Stm32_Clock_Init(336,8,2,7);  	//设置时钟,168Mhz
-	delay_init(168);               	//初始化延时函数
-	uart_init(115200);             	//初始化USART
-	LED_Init();						//初始化LED	
-	KEY_Init();						//初始化KEY 
-	W25QXX_Init();				    //初始化W25Q256
-	my_mem_init(SRAMIN);			//初始化内部内存池
-	
-	
-	printf("*********************\r\n");
-	printf("* Bootloader start! *\r\n");
-	printf("* V0.1              *\r\n");
-	printf("*********************\r\n");
-	
- 	res=f_mount(&fs,"1:",1); 				//挂载FLASH.	
+void do_update()
+{
+	u8 res=0;
+	res=f_mount(&fs,"1:",1); 				//挂载FLASH.	
 	if(res==FR_OK)//FLASH磁盘,FAT文件系统正常
 	{
 		printf("Flash disk OK!\r\n");
@@ -45,8 +35,6 @@ int main(void)
 	FRESULT fres;
 	FILINFO fno;
 	
-	//print_firmware_contents();
-	//while(1);
 	fres = f_stat("1:/firmware.bin", &fno);
 	if (fres == FR_OK) {
 		// 文件存在
@@ -56,7 +44,7 @@ int main(void)
 		u8 file_buffer[512]={0};
 		FIL firmware_file;
 		UINT bytes_read;
-		uint32_t total_bytes_read = 0;
+		unsigned long total_bytes_read = 0;
 		uint32_t flash_addr = APP_FLASH_ADDR;
 
 		// 打开固件文件
@@ -86,7 +74,7 @@ int main(void)
 								 total_bytes_read, fno.fsize, 
 								 (float)total_bytes_read * 100.0f / fno.fsize);
 			}
-    
+		
 			// 关闭文件
 			f_close(&firmware_file);
 			
@@ -106,19 +94,46 @@ int main(void)
 	}	
 	else {
 			// 文件不存在
-			printf("firmware.bin not found, error code: %d\r\n", fres);
+			printf("firmware.bin not found!\r\n");
+	}
+}
+
+int main(void)
+{
+  HAL_Init();                   	//初始化HAL库    
+
+  Stm32_Clock_Init(336,8,2,7);  	//设置时钟,168Mhz
+	delay_init(168);               	//初始化延时函数
+	uart_init(115200);             	//初始化USART
+	LED_Init();						//初始化LED	
+	KEY_Init();						//初始化KEY 
+	W25QXX_Init();				    //初始化W25Q256
+	my_mem_init(SRAMIN);			//初始化内部内存池
+	
+	
+	printf("*********************\r\n");
+	printf("* Bootloader start! *\r\n");
+	printf("* V0.2              *\r\n");
+	printf("*********************\r\n");
+	
+	
+	if( KEY0_PRES == KEY_Scan(0) )
+	{
+		printf("KEY0 is pressed! Now you can copy the firmware.bin!\r\n");
+		USBD_Init(&USB_OTG_dev,USB_OTG_FS_CORE_ID,&USR_desc,&USBD_MSC_cb,&USR_cb);
+		while(1);
 	}
 	
-	__set_MSP(*(uint32_t *)APP_FLASH_ADDR); //设置栈指针
+	//执行更新流程
+	do_update();
+	
+	printf("正在跳转到APP...\r\n");
 	void (*app_entry_ptr)(void);
+	__set_MSP(*(uint32_t *)APP_FLASH_ADDR); //设置栈指针
 	app_entry_ptr = (void (*)(void))(*(uint32_t *)(APP_FLASH_ADDR+4));
 	app_entry_ptr();
 	
-	while(1)
-	{
-		t++; 
-		delay_ms(200);		 			   
-		LED0=!LED0;
-	}	
+	//不应该运行到这里
+	while(1);	
 }
 
