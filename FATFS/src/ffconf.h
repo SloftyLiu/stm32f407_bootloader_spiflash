@@ -148,7 +148,7 @@
 / Drive/Volume Configurations
 /---------------------------------------------------------------------------*/
 
-#define _VOLUMES	2	//支持2个磁盘
+#define _VOLUMES	3	//支持2个磁盘
 /* Number of volumes (logical drives) to be used. */
 
 

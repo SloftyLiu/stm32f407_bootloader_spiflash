@@ -9,6 +9,7 @@
 #include "diskio.h"			/* FatFs lower layer API */
 #include "w25qxx.h"
 #include "malloc.h"	 	 
+#include "usbh_usr.h"
 //////////////////////////////////////////////////////////////////////////////////	 
 //本程序只供学习使用，未经作者许可，不得用于其它任何用途
 //ALIENTEK STM32开发板
@@ -24,6 +25,7 @@
 
 #define SD_CARD	 	0  			//SD卡,卷标为0
 #define EX_FLASH 	1			//外部spi flash,卷标为1
+#define USB_DISK 	2			//U盘,卷标为2
 
 #define FLASH_SECTOR_SIZE 	512			  
 //对于W25Q128
@@ -50,6 +52,9 @@ DSTATUS disk_initialize (
 		case EX_FLASH:		//外部flash
 			W25QXX_Init();  //W25QXX初始化
  			break;
+		case USB_DISK:		//U盘
+	  		if(USBH_UDISK_Status())return 0;	//U盘连接成功,则返回1.否则返回0		  
+			else return 1;	 
 		default:
 			res=1; 
 	}		 
@@ -82,6 +87,9 @@ DRESULT disk_read (
 			}
 			res=0;
 			break;
+		case USB_DISK://U盘 
+			res=USBH_UDISK_Read(buff,sector,count);	  
+			break;			
 		default:
 			res=1; 
 	}
@@ -114,6 +122,9 @@ DRESULT disk_write (
 			}
 			res=0;
 			break;
+		case USB_DISK://U盘
+			res=USBH_UDISK_Write((u8*)buff,sector,count); 
+			break;			
 		default:
 			res=1; 
 	}
@@ -155,7 +166,31 @@ DRESULT res;
 		        res = RES_PARERR;
 		        break;
 	    }
-	}else res=RES_ERROR;//其他的不支持
+	}else if(pdrv==USB_DISK)	//U盘
+	{
+	    switch(cmd)
+	    {
+		    case CTRL_SYNC:
+				res = RES_OK; 
+		        break;	 
+		    case GET_SECTOR_SIZE:
+		        *(WORD*)buff=512;
+		        res = RES_OK;
+		        break;	 
+		    case GET_BLOCK_SIZE:
+		        *(WORD*)buff=512;
+		        res = RES_OK;
+		        break;	 
+		    case GET_SECTOR_COUNT:
+		        *(DWORD*)buff=USBH_MSC_Param.MSCapacity;
+		        res = RES_OK;
+		        break;
+		    default:
+		        res = RES_PARERR;
+		        break;
+	    }
+		}
+		else res=RES_ERROR;//其他的不支持
     return res;
 } 
 //获得时间

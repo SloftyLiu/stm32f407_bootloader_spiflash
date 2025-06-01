@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file    usb_hcd.h
+  * @file    USBH_conf.h
   * @author  MCD Application Team
-  * @version V2.2.0
+  * @version V1.2.0
   * @date    09-November-2015
-  * @brief   Host layer Header file
+  * @brief   General low level driver configuration
   ******************************************************************************
   * @attention
   *
@@ -26,25 +26,40 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USB_HCD_H__
-#define __USB_HCD_H__
+#ifndef __USBH_CONF__H__
+#define __USBH_CONF__H__
 
 /* Includes ------------------------------------------------------------------*/
-#include "usb_regs.h"
-#include "usb_core.h"
 
-
-/** @addtogroup USB_OTG_DRIVER
+/** @addtogroup USBH_OTG_DRIVER
   * @{
   */
   
-/** @defgroup USB_HCD
-  * @brief This file is the 
+/** @defgroup USBH_CONF
+  * @brief usb otg low level driver configuration file
   * @{
   */ 
 
+/** @defgroup USBH_CONF_Exported_Defines
+  * @{
+  */ 
 
-/** @defgroup USB_HCD_Exported_Defines
+#define USBH_MAX_NUM_ENDPOINTS                3  /* 1 bulk IN + 1 bulk Out */
+                                                 /* + 1 additional interrupt IN* needed for some keys*/
+#define USBH_MAX_NUM_INTERFACES               2
+#define USBH_MSC_MAX_LUNS                     5  /* Up to 5 LUNs to be supported */
+#ifdef USE_USB_OTG_FS 
+#define USBH_MSC_MPS_SIZE                 0x40
+#else
+#define USBH_MSC_MPS_SIZE                 0x200
+#endif
+#define USBH_MAX_DATA_BUFFER              0x400
+/**
+  * @}
+  */ 
+
+
+/** @defgroup USBH_CONF_Exported_Types
   * @{
   */ 
 /**
@@ -52,7 +67,21 @@
   */ 
 
 
-/** @defgroup USB_HCD_Exported_Types
+/** @defgroup USBH_CONF_Exported_Macros
+  * @{
+  */ 
+/**
+  * @}
+  */ 
+
+/** @defgroup USBH_CONF_Exported_Variables
+  * @{
+  */ 
+/**
+  * @}
+  */ 
+
+/** @defgroup USBH_CONF_Exported_FunctionsPrototype
   * @{
   */ 
 /**
@@ -60,43 +89,7 @@
   */ 
 
 
-/** @defgroup USB_HCD_Exported_Macros
-  * @{
-  */ 
-/**
-  * @}
-  */ 
-
-/** @defgroup USB_HCD_Exported_Variables
-  * @{
-  */ 
-/**
-  * @}
-  */ 
-
-/** @defgroup USB_HCD_Exported_FunctionsPrototype
-  * @{
-  */ 
-uint32_t  HCD_Init                 (USB_OTG_CORE_HANDLE *pdev ,
-                                    USB_OTG_CORE_ID_TypeDef coreID);
-uint32_t  HCD_HC_Init              (USB_OTG_CORE_HANDLE *pdev , 
-                                    uint8_t hc_num); 
-uint32_t  HCD_SubmitRequest        (USB_OTG_CORE_HANDLE *pdev , 
-                                    uint8_t hc_num) ;
-uint32_t  HCD_GetCurrentSpeed      (USB_OTG_CORE_HANDLE *pdev);
-uint32_t  HCD_ResetPort            (USB_OTG_CORE_HANDLE *pdev);
-uint32_t  HCD_IsDeviceConnected    (USB_OTG_CORE_HANDLE *pdev);
-uint32_t  HCD_IsPortEnabled         (USB_OTG_CORE_HANDLE *pdev);
-
-uint32_t  HCD_GetCurrentFrame      (USB_OTG_CORE_HANDLE *pdev) ;
-USB_OTG_HCStateTypeDef HCD_GetURB_State         (USB_OTG_CORE_HANDLE *pdev,  uint8_t ch_num); 
-uint32_t  HCD_GetXferCnt           (USB_OTG_CORE_HANDLE *pdev,  uint8_t ch_num); 
-USB_OTG_HCStateTypeDef HCD_GetHCState           (USB_OTG_CORE_HANDLE *pdev,  uint8_t ch_num) ;
-/**
-  * @}
-  */ 
-
-#endif //__USB_HCD_H__
+#endif //__USBH_CONF__H__
 
 
 /**
