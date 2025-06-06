@@ -15,6 +15,7 @@
 #include "usbd_msc_bot.h"
 #include "usbh_usr.h" 
 #include "update.h"
+#include "crc.h"
 
 FATFS fs;
 FATFS udisk_fs;
@@ -58,6 +59,55 @@ u8 USH_User_App(void)
 	return res;
 } 
 
+//校验一个文件CRC32的demo
+int fileCRC32_check(void) 
+{
+    FATFS fs;
+    FIL file;
+    FRESULT res;
+    UINT br;
+    uint8_t buffer[512];
+    uint32_t crc = 0;
+
+    res = f_mount(&fs, "1:", 1);
+    if (res != FR_OK) 
+		{
+        printf("Mount failed: %d\n", res);
+        return 1;
+    }
+
+    res = f_open(&file, "1:/test.bin", FA_READ);
+    if (res != FR_OK) 
+		{
+        printf("Open failed: %d\n", res);
+        return 1;
+    }
+
+    crc = 0x0;
+    do
+		{
+        res = f_read(&file, buffer, sizeof(buffer), &br);
+        if (res != FR_OK) 
+				{
+            printf("Read failed: %d\n", res);
+            f_close(&file);
+            return 1;
+        }
+        if (br > 0) 
+				{
+            crc = CRC32Software(buffer, br, crc);
+        }
+    } 
+		while (br == sizeof(buffer));
+
+    f_close(&file);
+
+    printf("File CRC32: 0X%08X\n", crc);
+
+    return 0;
+}
+
+CRC_HandleTypeDef stm32_CRC;
 
 int main(void)
 {
@@ -73,8 +123,18 @@ int main(void)
 		
 	printf("*********************\r\n");
 	printf("* Bootloader start! *\r\n");
-	printf("* V0.3              *\r\n");
+	printf("* V0.4              *\r\n");
 	printf("*********************\r\n");
+	
+	uint8_t  crc_soft[4] = {0x11,0x22,0x33,0x44};
+	uint32_t crc_hard[4] = {0x11223344};
+	
+	__HAL_RCC_CRC_CLK_ENABLE();
+	stm32_CRC.Instance = CRC;
+	HAL_CRC_Init(&stm32_CRC);
+	
+	printf("crc32 soft = 0X%X, hard = 0X%X \r\n",CRC32Software(crc_soft,0x4,0xffffffff), HAL_CRC_Calculate(&stm32_CRC,crc_hard,1));
+	fileCRC32_check();
 	
 	switch( KEY_Scan(0) )
 	{
