@@ -720,6 +720,11 @@
               <FileType>1</FileType>
               <FilePath>..\USB\USB_APP\usbh_usr.c</FilePath>
             </File>
+            <File>
+              <FileName>usbd_usr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\USB\USB_APP\usbd_usr.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

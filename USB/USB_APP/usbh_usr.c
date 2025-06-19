@@ -24,12 +24,14 @@ extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 
 //USB OTG 中断服务函数
 //处理所有USB中断
-void OTG_FS_IRQHandler(void)
+/*
+void OTG_FS_Host_IRQHandler(void)
 {
   	USBH_OTG_ISR_Handler(&USB_OTG_Core);
 } 
+*/
 //USB HOST 用户回调函数.
-USBH_Usr_cb_TypeDef USR_cb =
+USBH_Usr_cb_TypeDef USR_cb_Host=
 {
 	USBH_USR_Init,
 	USBH_USR_DeInit,

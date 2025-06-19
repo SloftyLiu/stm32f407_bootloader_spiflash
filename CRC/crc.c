@@ -1,5 +1,5 @@
 #include "crc.h"
-
+#include "stdio.h"
 /*********
  *  Width  : 32
  *	Poly   : 0x04c11db7
@@ -86,4 +86,37 @@ uint32_t CRC32Software(const unsigned char *buf, int len, unsigned int init)
     buf++;
   }
   return crc;
+}
+
+void CRCTest()
+{
+	uint8_t  crc_soft[1000] = {0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88};
+	uint32_t crc_hard[250] =  {0x11223344,0x55667788};
+	CRC_HandleTypeDef stm32_CRC;
+	__HAL_RCC_CRC_CLK_ENABLE();
+	stm32_CRC.Instance = CRC;
+	HAL_CRC_Init(&stm32_CRC);
+	
+	
+	uint32_t start = HAL_GetTick();
+	uint32_t end;
+	uint32_t crc;
+	for(int i = 0;i < 10000; i++)
+	{
+		crc = CRC32Software(crc_soft,1000,0xffffffff);
+	}
+	end = HAL_GetTick();
+	printf("soft ticks: %d 0x%x\r\n",end - start , crc);
+	
+	start = HAL_GetTick();
+	for(int i = 0;i < 10000; i++)
+	{
+		crc = HAL_CRC_Calculate(&stm32_CRC,crc_hard,250);
+	}	
+	end = HAL_GetTick();
+	printf("hard ticks: %d 0x%x\r\n",end - start , crc);
+	
+	
+	//printf("crc32 soft = 0X%X, hard = 0X%X \r\n",CRC32Software(crc_soft,0x4,0xffffffff), HAL_CRC_Calculate(&stm32_CRC,crc_hard,1));
+	//fileCRC32_check();
 }

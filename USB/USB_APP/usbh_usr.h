@@ -55,7 +55,7 @@
   */ 
 
 
-extern  USBH_Usr_cb_TypeDef USR_cb;
+extern  USBH_Usr_cb_TypeDef USR_cb_Host;
 
 
 

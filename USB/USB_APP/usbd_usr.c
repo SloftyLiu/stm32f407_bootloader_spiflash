@@ -28,13 +28,16 @@ extern USB_OTG_CORE_HANDLE  USB_OTG_dev;
 
 //USB OTG 中断服务函数
 //处理所有USB中断
+/*
 void OTG_FS_IRQHandler(void)
 {
   	USBD_OTG_ISR_Handler(&USB_OTG_dev);
 }  
+*/
+
 //指向DEVICE_PROP结构体
 //USB Device 用户回调函数. 
-USBD_Usr_cb_TypeDef USR_cb =
+USBD_Usr_cb_TypeDef USR_cb_Device =
 {
   USBD_USR_Init,
   USBD_USR_DeviceReset,

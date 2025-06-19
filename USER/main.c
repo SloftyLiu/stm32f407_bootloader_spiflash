@@ -9,19 +9,37 @@
 #include "string.h"
 #include "key.h"
 #include "usbd_msc_core.h"
-//#include "usbd_usr.h"
+#include "usbd_usr.h"
 #include "usbd_desc.h"
 #include "usb_conf.h"
 #include "usbd_msc_bot.h"
 #include "usbh_usr.h" 
 #include "update.h"
 #include "crc.h"
+#include "usb_hcd_int.h"
+#include "usb_dcd_int.h"
 
 FATFS fs;
 FATFS udisk_fs;
-//USB_OTG_CORE_HANDLE USB_OTG_dev;
+USB_OTG_CORE_HANDLE USB_OTG_dev;
 USBH_HOST  USB_Host;
 USB_OTG_CORE_HANDLE  USB_OTG_Core;
+
+typedef enum {
+	USB_ROLE_DEVICE = 0,
+	USB_ROLE_HOST,
+	USB_ROLE_NONE,
+}USBRole_Tpyedef;
+
+USBRole_Tpyedef USBRole = USB_ROLE_NONE;
+
+void OTG_FS_IRQHandler(void)
+{
+	if(USBRole == USB_ROLE_DEVICE)
+  	USBD_OTG_ISR_Handler(&USB_OTG_dev);
+	if(USBRole == USB_ROLE_HOST)
+		USBH_OTG_ISR_Handler(&USB_OTG_Core);
+}  
 
 typedef enum {
 	SPIFLASH_UPDATE = 0,
@@ -57,57 +75,9 @@ u8 USH_User_App(void)
 		printf("U disk mount fail!!!!!!!!!res %d\r\n",res);
 	}
 	return res;
-} 
-
-//校验一个文件CRC32的demo
-int fileCRC32_check(void) 
-{
-    FATFS fs;
-    FIL file;
-    FRESULT res;
-    UINT br;
-    uint8_t buffer[512];
-    uint32_t crc = 0;
-
-    res = f_mount(&fs, "1:", 1);
-    if (res != FR_OK) 
-		{
-        printf("Mount failed: %d\n", res);
-        return 1;
-    }
-
-    res = f_open(&file, "1:/test.bin", FA_READ);
-    if (res != FR_OK) 
-		{
-        printf("Open failed: %d\n", res);
-        return 1;
-    }
-
-    crc = 0x0;
-    do
-		{
-        res = f_read(&file, buffer, sizeof(buffer), &br);
-        if (res != FR_OK) 
-				{
-            printf("Read failed: %d\n", res);
-            f_close(&file);
-            return 1;
-        }
-        if (br > 0) 
-				{
-            crc = CRC32Software(buffer, br, crc);
-        }
-    } 
-		while (br == sizeof(buffer));
-
-    f_close(&file);
-
-    printf("File CRC32: 0X%08X\n", crc);
-
-    return 0;
 }
 
-CRC_HandleTypeDef stm32_CRC;
+
 
 int main(void)
 {
@@ -123,29 +93,21 @@ int main(void)
 		
 	printf("*********************\r\n");
 	printf("* Bootloader start! *\r\n");
-	printf("* V0.4              *\r\n");
+	printf("* V0.5              *\r\n");
 	printf("*********************\r\n");
 	
-	uint8_t  crc_soft[4] = {0x11,0x22,0x33,0x44};
-	uint32_t crc_hard[4] = {0x11223344};
-	
-	__HAL_RCC_CRC_CLK_ENABLE();
-	stm32_CRC.Instance = CRC;
-	HAL_CRC_Init(&stm32_CRC);
-	
-	printf("crc32 soft = 0X%X, hard = 0X%X \r\n",CRC32Software(crc_soft,0x4,0xffffffff), HAL_CRC_Calculate(&stm32_CRC,crc_hard,1));
-	fileCRC32_check();
 	
 	switch( KEY_Scan(0) )
 	{
 		case KEY0_PRES :
 			printf("KEY0 is pressed! Now you can copy the firmware.bin!\r\n");
-			//TODO:
-			//USBD_Init(&USB_OTG_dev,USB_OTG_FS_CORE_ID,&USR_desc,&USBD_MSC_cb,&USR_cb);
+			USBRole = USB_ROLE_DEVICE;
+			USBD_Init(&USB_OTG_dev,USB_OTG_FS_CORE_ID,&USR_desc,&USBD_MSC_cb,&USR_cb_Device);
 			while(1);
 		case KEY1_PRES :
+			USBRole = USB_ROLE_HOST;
 			printf("KEY1 is pressed! Now the check firmware.bin in USB disk!\r\n");
-		  USBH_Init(&USB_OTG_Core,USB_OTG_FS_CORE_ID,&USB_Host,&USBH_MSC_cb,&USR_cb);  
+		  USBH_Init(&USB_OTG_Core,USB_OTG_FS_CORE_ID,&USB_Host,&USBH_MSC_cb,&USR_cb_Host);  
 			while(1)
 			{
 				USBH_Process(&USB_OTG_Core, &USB_Host);
