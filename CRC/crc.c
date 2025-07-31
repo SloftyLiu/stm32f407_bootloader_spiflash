@@ -1,5 +1,7 @@
 #include "crc.h"
 #include "stdio.h"
+#include "ff.h"
+
 /*********
  *  Width  : 32
  *	Poly   : 0x04c11db7
@@ -8,7 +10,6 @@
  *	RefOut : false
  *	XorOut : 0
  */
-
 static const uint32_t Crc32Table[ 256 ] =
 {
 	0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9,
@@ -77,7 +78,7 @@ static const uint32_t Crc32Table[ 256 ] =
   0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
 };
 
-uint32_t CRC32Software(const unsigned char *buf, int len, unsigned int init)
+uint32_t CRC32_calcu_software(const unsigned char *buf, int len, unsigned int init)
 {
   unsigned int crc = init;
   while (len--)
@@ -88,7 +89,7 @@ uint32_t CRC32Software(const unsigned char *buf, int len, unsigned int init)
   return crc;
 }
 
-void CRCTest()
+void CRC_test(void)
 {
 	uint8_t  crc_soft[1000] = {0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88};
 	uint32_t crc_hard[250] =  {0x11223344,0x55667788};
@@ -103,7 +104,7 @@ void CRCTest()
 	uint32_t crc;
 	for(int i = 0;i < 10000; i++)
 	{
-		crc = CRC32Software(crc_soft,1000,0xffffffff);
+		crc = CRC32_calcu_software(crc_soft,1000,0xffffffff);
 	}
 	end = HAL_GetTick();
 	printf("soft ticks: %d 0x%x\r\n",end - start , crc);
@@ -116,7 +117,45 @@ void CRCTest()
 	end = HAL_GetTick();
 	printf("hard ticks: %d 0x%x\r\n",end - start , crc);
 	
-	
-	//printf("crc32 soft = 0X%X, hard = 0X%X \r\n",CRC32Software(crc_soft,0x4,0xffffffff), HAL_CRC_Calculate(&stm32_CRC,crc_hard,1));
-	//fileCRC32_check();
+	printf("crc32 soft = 0X%X, hard = 0X%X \r\n",CRC32_calcu_software(crc_soft,0x4,0xffffffff), HAL_CRC_Calculate(&stm32_CRC,crc_hard,1));
+}
+
+uint32_t CRC32_file_check(const char *path) 
+{
+    FATFS fs;
+    FIL file;
+    FRESULT res;
+    UINT br;
+    uint8_t buffer[512];
+    uint32_t crc = 0;
+
+    res = f_open(&file, path, FA_READ);
+    if (res != FR_OK) 
+		{
+        printf("Open failed: %d\n", res);
+        return 1;
+    }
+
+    crc = 0x0;
+    do
+		{
+        res = f_read(&file, buffer, sizeof(buffer), &br);
+        if (res != FR_OK) 
+				{
+            printf("Read failed: %d\n", res);
+            f_close(&file);
+            return 1;
+        }
+        if (br > 0) 
+				{
+            crc = CRC32_calcu_software(buffer, br, crc);
+        }
+    } 
+		while (br == sizeof(buffer));
+
+    f_close(&file);
+
+    printf("File CRC32: 0X%08X\n", crc);
+
+    return crc;
 }

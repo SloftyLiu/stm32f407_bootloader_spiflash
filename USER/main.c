@@ -48,7 +48,7 @@ typedef enum {
 	SDCARD_UPDATE,
 }Update_Tpyedef;
 
-Update_Tpyedef update_type =  SDCARD_UPDATE;
+Update_Tpyedef update_type =  SPIFLASH_UPDATE;
 
 //检查U盘是否存在firmware.bin
 //返回值:0,正常
@@ -79,13 +79,11 @@ u8 USH_User_App(void)
 	return res;
 }
 
-
-
 int main(void)
 {
-  HAL_Init();                   	//初始化HAL库    
+	HAL_Init();                   	//初始化HAL库    
 
-  Stm32_Clock_Init(336,8,2,7);  	//设置时钟,168Mhz
+	Stm32_Clock_Init(336,8,2,7);  	//设置时钟,168Mhz
 	delay_init(168);               	//初始化延时函数
 	uart_init(115200);             	//初始化USART
 	LED_Init();						//初始化LED	
@@ -97,7 +95,6 @@ int main(void)
 	printf("* Bootloader start! *\r\n");
 	printf("* V0.6              *\r\n");
 	printf("*********************\r\n");
-	
 	
 	switch( KEY_Scan(0) )
 	{
@@ -119,7 +116,10 @@ int main(void)
 				}
 				delay_ms(1);
 			}					
-			break;	
+			break;
+		case KEY2_PRES :
+			update_type = SDCARD_UPDATE;
+			break;
 		default:
 			break;
 	}
