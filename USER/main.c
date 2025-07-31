@@ -19,6 +19,7 @@
 #include "usb_hcd_int.h"
 #include "usb_dcd_int.h"
 
+FATFS sdcard_fs;
 FATFS fs;
 FATFS udisk_fs;
 USB_OTG_CORE_HANDLE USB_OTG_dev;
@@ -44,9 +45,10 @@ void OTG_FS_IRQHandler(void)
 typedef enum {
 	SPIFLASH_UPDATE = 0,
 	UDISK_UPDATE,
+	SDCARD_UPDATE,
 }Update_Tpyedef;
 
-Update_Tpyedef update_type =  SPIFLASH_UPDATE;
+Update_Tpyedef update_type =  SDCARD_UPDATE;
 
 //检查U盘是否存在firmware.bin
 //返回值:0,正常
@@ -93,7 +95,7 @@ int main(void)
 		
 	printf("*********************\r\n");
 	printf("* Bootloader start! *\r\n");
-	printf("* V0.5              *\r\n");
+	printf("* V0.6              *\r\n");
 	printf("*********************\r\n");
 	
 	
@@ -125,6 +127,9 @@ int main(void)
 	//执行更新流程
 	switch(update_type)
 	{
+		case SDCARD_UPDATE:
+			sdcard_update();
+			break;		
 		case SPIFLASH_UPDATE:
 			spiflash_update();
 			break;

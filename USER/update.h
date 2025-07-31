@@ -7,5 +7,6 @@
 
 void spiflash_update(void);
 void udisk_update(void);
+void sdcard_update(void);
 
 #endif

@@ -10,6 +10,7 @@
 #include "w25qxx.h"
 #include "malloc.h"	 	 
 #include "usbh_usr.h"
+#include "sdio_sdcard.h"
 //////////////////////////////////////////////////////////////////////////////////	 
 //本程序只供学习使用，未经作者许可，不得用于其它任何用途
 //ALIENTEK STM32开发板
@@ -49,6 +50,8 @@ DSTATUS disk_initialize (
 	u8 res=0;	    
 	switch(pdrv)
 	{
+		case SD_CARD:		//SD卡
+			res=SD_Init();	//SD卡初始化 		
 		case EX_FLASH:		//外部flash
 			W25QXX_Init();  //W25QXX初始化
  			break;
@@ -78,6 +81,15 @@ DRESULT disk_read (
     if (!count)return RES_PARERR;//count不能等于0，否则返回参数错误		 	 
 	switch(pdrv)
 	{
+		case SD_CARD://SD卡
+			res=SD_ReadDisk(buff,sector,count);	 
+			while(res)//读出错
+			{
+				SD_Init();	//重新初始化SD卡
+				res=SD_ReadDisk(buff,sector,count);	
+				//printf("sd rd error:%d\r\n",res);
+			}
+			break;		
 		case EX_FLASH://外部flash
 			for(;count>0;count--)
 			{
@@ -113,6 +125,14 @@ DRESULT disk_write (
     if (!count)return RES_PARERR;//count不能等于0，否则返回参数错误		 	 
 	switch(pdrv)
 	{
+		case SD_CARD://SD卡
+			res=SD_WriteDisk((u8*)buff,sector,count);
+			while(res)//写出错
+			{
+				SD_Init();	//重新初始化SD卡
+				res=SD_WriteDisk((u8*)buff,sector,count);	
+			}
+			break;
 		case EX_FLASH://外部flash
 			for(;count>0;count--)
 			{										    
@@ -142,8 +162,31 @@ DRESULT disk_ioctl (
 	void *buff		/* Buffer to send/receive control data */
 )
 {
-DRESULT res;						  			     
-	if(pdrv==EX_FLASH)	//外部FLASH  
+DRESULT res;
+	if(pdrv==SD_CARD)//SD卡
+	{
+	    switch(cmd)
+	    {
+		    case CTRL_SYNC:
+				res = RES_OK; 
+		        break;	 
+		    case GET_SECTOR_SIZE:
+				*(DWORD*)buff = 512; 
+		        res = RES_OK;
+		        break;	 
+		    case GET_BLOCK_SIZE:
+				*(WORD*)buff = SDCardInfo.LogBlockSize;
+		        res = RES_OK;
+		        break;	 
+		    case GET_SECTOR_COUNT:
+		        *(DWORD*)buff = SDCardInfo.LogBlockNbr;
+		        res = RES_OK;
+		        break;
+		    default:
+		        res = RES_PARERR;
+		        break;
+	    }
+	}else if(pdrv==EX_FLASH) //外部FLASH  
 	{
 	    switch(cmd)
 	    {
@@ -189,8 +232,8 @@ DRESULT res;
 		        res = RES_PARERR;
 		        break;
 	    }
-		}
-		else res=RES_ERROR;//其他的不支持
+	} else res=RES_ERROR;//其他的不支持
+	
     return res;
 } 
 //获得时间
